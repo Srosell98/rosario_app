@@ -104,6 +104,8 @@ struct HomeTabView: View {
     
     // Custom Brown color for better contrast against light backgrounds
     private let primaryBrown = Color(red: 0.45, green: 0.31, blue: 0.18)
+    private let secundaryBrown = Color(red: 0.35, green: 0.24, blue: 0.14)
+    private let tertiaryBrown = Color(red: 0.25, green: 0.17, blue: 0.10)
     private let brandGold = Color(red: 0.62, green: 0.42, blue: 0.25)
 
     var body: some View {
@@ -137,12 +139,12 @@ struct HomeTabView: View {
                         ForEach(mysteries) { mystery in
                             HStack(alignment: .top, spacing: 5) {
                                 Text("\(mystery.number).")
-                                    .foregroundColor(primaryBrown) // Darker for accessibility
+                                    .foregroundColor(secundaryBrown) // Darker for accessibility
                                 
                                 Text(mystery.description)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
-                                    .foregroundColor(primaryBrown)
+                                    .foregroundColor(secundaryBrown)
                                     .fixedSize(horizontal: false, vertical: true) // Allows wrap if needed
                                     .multilineTextAlignment(.leading)
                                 
@@ -267,10 +269,14 @@ struct PlayerView: View {
                 Image(viewModel.currentImageName)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(minHeight: 200, maxHeight: 400) // Rango flexible
+                    // 1. PRIMERO: El recorte va pegado a la imagen redimensionada
                     .cornerRadius(16)
-                    .shadow(radius: 8)
-                    .padding(.vertical, 10)
+                    // 2. SEGUNDO: El límite de ancho (para que no toque los bordes)
+                    .padding(.horizontal, 20)
+                    // 3. TERCERO: El límite de alto (la "caja" flexible)
+                    .frame(minHeight: 200, maxHeight: 400)
+                    // 4. CUARTO: La sombra (siempre después del recorte)
+                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                     .id(viewModel.currentImageName)
                     .transition(.opacity.animation(.easeInOut(duration: 0.5)))
                 Spacer()
@@ -373,7 +379,11 @@ struct EditorView: View {
                             .font(.caption).foregroundColor(.gray)
                     }
                     
-                    Toggle("Rezos Iniciales (Extendidos)", isOn: $editorViewModel.config.includeInitialPrayers)
+                    Toggle("Rezos Iniciales", isOn: $editorViewModel.config.includeInitialPrayers)
+                    if editorViewModel.config.includeInitialPrayers {
+                        Text("Señal de la cruz extendida más oraciones vocales")
+                            .font(.caption).foregroundColor(.gray)
+                    }
                     Toggle("Oraciones Introductorias", isOn: $editorViewModel.config.includeIntroPrayers)
                     if editorViewModel.config.includeIntroPrayers {
                         Text("Incluye: Padre Nuestro, 3 Avemarías y Gloria antes del primer misterio")
@@ -383,15 +393,23 @@ struct EditorView: View {
                 
                 // Sección Central (Informativa)
                 Section(header: Text("Parte Central").font(.headline).foregroundColor(.brown)) {
-                    Toggle("Silencio tras misterio", isOn: $editorViewModel.config.includeSilenceAfterMystery)
+                    Toggle("Silencio tras Misterio", isOn: $editorViewModel.config.includeSilenceAfterMystery)
                     
                     // Agregado: Toggle para incluir Salve después de los Misterios
-                    Toggle("Salve (después de los  5 Misterios)", isOn: $editorViewModel.config.includeSalve)
+                    Toggle("Salve", isOn: $editorViewModel.config.includeSalve)
+                    if editorViewModel.config.includeSalve {
+                        Text("Después de los  5 Misterios")
+                            .font(.caption).foregroundColor(.gray)
+                    }
                 }
                 
                 // Sección Final
                 Section(header: Text("Parte Final").font(.headline).foregroundColor(.brown)) {
-                    Toggle("Trinidad (3 Avemarías)", isOn: $editorViewModel.config.includeTrinity)
+                    Toggle("Trinidad", isOn: $editorViewModel.config.includeTrinity)
+                    if editorViewModel.config.includeTrinity {
+                        Text("Rezo 3 Ave Marías a la Santísima Trinidad")
+                            .font(.caption).foregroundColor(.gray)
+                    }
                     
                     Toggle("Letanías Lauretanas", isOn: $editorViewModel.config.includeLitanies)
                     
@@ -399,7 +417,6 @@ struct EditorView: View {
                     
                     Toggle("Peticiones Finales", isOn: $editorViewModel.config.includePetitions)
                     
-
                 }
                 
                 // Acciones
@@ -465,26 +482,48 @@ struct RosaryHeaderView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // 1. Indicador de los 5 Misterios (Puntos)
+            // 1. Indicador de Progreso (Punto Inicial + 5 Misterios + Punto Final)
             HStack(spacing: 15) {
-                let currentMystery = viewModel.currentSequence.enabledSegments()[safe: viewModel.currentSegmentIndex]?.mysteryNumber
+                let segments = viewModel.currentSequence.enabledSegments()
+                let currentSegment = segments[safe: viewModel.currentSegmentIndex]
                 
+                // Determinamos en qué fase estamos
+                let isInitialPhase = currentSegment?.mysteryNumber == nil && viewModel.currentSegmentIndex < (segments.firstIndex(where: { $0.mysteryNumber != nil }) ?? 0)
+                let isFinalPhase = currentSegment?.mysteryNumber == nil && viewModel.currentSegmentIndex > (segments.lastIndex(where: { $0.mysteryNumber != nil }) ?? segments.count)
+                let currentMystery = currentSegment?.mysteryNumber
+
+                // --- PUNTO INICIAL ---
+                Circle()
+                    .fill(isInitialPhase ? brandBrown : Color.gray.opacity(0.3))
+                    .frame(width: 8, height: 8) // Un poco más pequeño
+                    .overlay(Circle().stroke(brandBrown, lineWidth: isInitialPhase ? 2 : 0).scaleEffect(1.6))
+                
+                // Separador sutil
+                Rectangle().fill(Color.gray.opacity(0.2)).frame(width: 1, height: 10)
+                    .padding(.horizontal, 5)
+
+                // --- LOS 5 MISTERIOS ---
                 ForEach(1...5, id: \.self) { i in
                     Circle()
                         .fill(currentMystery == i ? brandBrown : Color.gray.opacity(0.3))
                         .frame(width: 10, height: 10)
-                        .overlay(
-                            Circle()
-                                .stroke(brandBrown, lineWidth: currentMystery == i ? 2 : 0)
-                                .scaleEffect(1.5)
-                        )
-                        .animation(.spring(), value: currentMystery)
+                        .overlay(Circle().stroke(brandBrown, lineWidth: currentMystery == i ? 2 : 0).scaleEffect(1.5))
                 }
+
+                // Separador sutil
+                Rectangle().fill(Color.gray.opacity(0.2)).frame(width: 1, height: 10)
+                    .padding(.horizontal, 5)
+
+                // --- PUNTO FINAL ---
+                Circle()
+                    .fill(isFinalPhase ? brandBrown : Color.gray.opacity(0.3))
+                    .frame(width: 8, height: 8) // Un poco más pequeño
+                    .overlay(Circle().stroke(brandBrown, lineWidth: isFinalPhase ? 2 : 0).scaleEffect(1.6))
             }
             .padding(.top, 5)
+            .animation(.spring(), value: viewModel.currentSegmentIndex)
         }
-        .padding(.vertical, 5)
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
     }
 
     // Lógica para poner un nombre bonito a cada parte
@@ -554,7 +593,7 @@ struct SettingsView: View {
                 Section("Voz") {
                     Picker("Género de voz", selection: $voiceGender) {
                         Text("Masculina").tag("male")
-                        Text("Femenina").tag("female")
+                        //Text("Femenina").tag("female")
                     }
                 }
                 
