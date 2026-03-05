@@ -1,0 +1,10 @@
+diff a/Rosario/Assets.xcassets/AppIcon.appiconset/Contents.json b/Rosario/Assets.xcassets/AppIcon.appiconset/Contents.json	(rejected hunks)
+@@ -1,7 +1,7 @@
+ {
+   "images" : [
+     {
+-      "filename" : "Captura de pantalla 2026-02-22 a la(s) 10.13.37 a.m..png",
++      "filename" : "Captura de pantalla 2026-02-28 a la(s) 8.11.30 p.m..jpg",
+       "idiom" : "universal",
+       "platform" : "ios",
+       "size" : "1024x1024"
