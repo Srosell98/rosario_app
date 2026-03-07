@@ -472,25 +472,44 @@ class RosarioViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 }
 
-// MARK: - EditorViewModel (Sin cambios, solo para que compile)
+// MARK: - EditorViewModel (ACTUALIZADO CON PERSISTENCIA)
 
 class EditorViewModel: ObservableObject {
     @Published var config: RosarioConfiguration
     private var currentMysteryGroup: MysteryGroup
     var onSave: ((RosarioSequence) -> Void)?
     
-    init(initialConfig: RosarioConfiguration = RosarioConfiguration(), mysteryGroup: MysteryGroup) {
-        self.config = initialConfig
+    init(initialConfig: RosarioConfiguration, mysteryGroup: MysteryGroup) {
+        // Ignoramos initialConfig y cargamos la guardada si existe
+        self.config = RosarioConfiguration.load()
         self.currentMysteryGroup = mysteryGroup
     }
     
     func saveChanges() {
+        // 1. Guardar físicamente en el dispositivo
+        config.save()
+        
+        // 2. Notificar al ViewModel principal para actualizar la sesión actual
         let newSequence = buildRosarioSequence(config: config, mysteryGroup: currentMysteryGroup)
         onSave?(newSequence)
     }
     
     func resetToDefault() {
-        self.config = RosarioConfiguration()
+        // 1. Resetear a valores de fábrica
+        self.config = RosarioConfiguration(
+            includeInitialPrayers: false,
+            includeCredo: true,
+            includeVisita: false,
+            includeIntroPrayers: true,
+            includeSilenceAfterMystery: false,
+            includeSalve: false,
+            includeTrinity: true,
+            includeLitanies: true,
+            includeFinalPrayers: false,
+            includePetitions: true
+        )
+        // 2. Persistir el reset
+        saveChanges()
     }
     
     func getMysteryForToday() -> MysteryGroup {

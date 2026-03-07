@@ -4,14 +4,6 @@
 //
 //  Created by Santiago Rosell on 11/2/26.
 //
-//
-//
-//
-//  RosarioModels.swift
-//  Rosario
-//
-//  Created by Santiago Rosell on 11/2/26.
-//
 
 import Foundation
 import Combine
@@ -72,7 +64,7 @@ enum VoiceGender: String, Codable {
     case female = "Femenina"
 }
 
-// MARK: - Configuration Struct (NUEVO)
+// MARK: - Configuration Struct (ACTUALIZADO CON PERSISTENCIA)
 
 struct RosarioConfiguration: Codable {
     // Sección Inicial
@@ -81,7 +73,7 @@ struct RosarioConfiguration: Codable {
     var includeVisita: Bool = true         // 3x(PN, Ave, Gloria) + comunión
     var includeIntroPrayers: Bool = true    //PN + 3 Aves + Gloria
     
-    // Sección Central (Fija, no editable)
+    // Sección Central
     var includeSilenceAfterMystery: Bool = false
     var includeSalve: Bool = false
     
@@ -90,6 +82,35 @@ struct RosarioConfiguration: Codable {
     var includeLitanies: Bool = true        // Letanías normales
     var includeFinalPrayers: Bool = true   // Oraciones finales extra (lauretanas)
     var includePetitions: Bool = true       // Iglesia, Obispo, Almas
+    
+    // --- Lógica de Persistencia ---
+    static let persistenceKey = "SavedRosarioConfiguration"
+    
+    static func load() -> RosarioConfiguration {
+        if let data = UserDefaults.standard.data(forKey: persistenceKey),
+           let decoded = try? JSONDecoder().decode(RosarioConfiguration.self, from: data) {
+            return decoded
+        }
+        // Retornar valores por defecto si no hay nada guardado
+        return RosarioConfiguration(
+            includeInitialPrayers: false,
+            includeCredo: true,
+            includeVisita: false,
+            includeIntroPrayers: true,
+            includeSilenceAfterMystery: false,
+            includeSalve: false,
+            includeTrinity: true,
+            includeLitanies: true,
+            includeFinalPrayers: false,
+            includePetitions: true
+        )
+    }
+    
+    func save() {
+        if let encoded = try? JSONEncoder().encode(self) {
+            UserDefaults.standard.set(encoded, forKey: RosarioConfiguration.persistenceKey)
+        }
+    }
 }
 
 // MARK: - Structs
@@ -481,16 +502,8 @@ func buildRosarioSequence(config: RosarioConfiguration, mysteryGroup: MysteryGro
 
 // Función helper para crear por defecto (usando configuración base)
 func buildDefaultRosarioSequence(mysteryGroup: MysteryGroup) -> RosarioSequence {
-    // Configuración por defecto: Credo, Trinidad, Letanías, Peticiones
-    let defaultConfig = RosarioConfiguration(
-        includeInitialPrayers: true,
-        includeCredo: false,
-        includeVisita: true,
-        includeTrinity: true,
-        includeLitanies: true,
-        includeFinalPrayers: true,
-        includePetitions: true
-    )
-    return buildRosarioSequence(config: defaultConfig, mysteryGroup: mysteryGroup)
+    // Cargar configuración guardada o usar la de fábrica
+    let config = RosarioConfiguration.load()
+    return buildRosarioSequence(config: config, mysteryGroup: mysteryGroup)
 }
 

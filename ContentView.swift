@@ -19,24 +19,15 @@ struct ContentView: View {
         let day = DayOfWeek(rawValue: dayOfWeek) ?? .sunday
         let mystery = day.mysteryGroup
         
-        // 2. Crear configuración por defecto
-        let defaultConfig = RosarioConfiguration(
-            includeInitialPrayers: false,
-            includeCredo: true,
-            includeVisita: false,
-            includeSalve: false,
-            includeTrinity: true,
-            includeLitanies: true,
-            includeFinalPrayers: false,
-            includePetitions: true,
-        )
+        // 2. Cargar configuración guardada (YA NO ES HARDCODED)
+        let savedConfig = RosarioConfiguration.load()
         
-        // 3. Crear secuencia inicial basada en config + misterio
-        let initialSequence = buildRosarioSequence(config: defaultConfig, mysteryGroup: mystery)
+        // 3. Crear secuencia inicial basada en config cargada + misterio
+        let initialSequence = buildRosarioSequence(config: savedConfig, mysteryGroup: mystery)
         
         // 4. Inicializar ViewModels
         let vm = RosarioViewModel(sequence: initialSequence)
-        let editorVM = EditorViewModel(initialConfig: defaultConfig, mysteryGroup: mystery)
+        let editorVM = EditorViewModel(initialConfig: savedConfig, mysteryGroup: mystery)
         
         // 5. Asignar a StateObjects
         _viewModel = StateObject(wrappedValue: vm)
@@ -74,7 +65,7 @@ struct ContentView: View {
                         Text("Rezar")
                     }
                 
-                // Tab 3: Editor (ACTUALIZADO)
+                // Tab 3: Editor (CON CALLBACK DE GUARDADO)
                 EditorView(editorViewModel: editorViewModel, onSave: { newSequence in
                     viewModel.updateSequence(newSequence)
                 })
@@ -359,7 +350,7 @@ struct PlayerView: View {
     }
 }
 
-// MARK: - Editor View (COMPLETAMENTE NUEVO)
+// MARK: - Editor View (ACTUALIZADO CON CALLBACK LIMPIO)
 
 struct EditorView: View {
     @ObservedObject var editorViewModel: EditorViewModel
@@ -427,8 +418,6 @@ struct EditorView: View {
                     }
                     
                     Button(action: {
-                        editorViewModel.saveChanges()
-                        // Aquí llamamos al callback para actualizar el VM principal
                         editorViewModel.onSave = onSave
                         editorViewModel.saveChanges()
                     }) {
@@ -442,6 +431,7 @@ struct EditorView: View {
             .alert("Restaurar", isPresented: $showResetConfirm) {
                 Button("Cancelar", role: .cancel) { }
                 Button("Restaurar", role: .destructive) {
+                    editorViewModel.onSave = onSave // Asegurar callback en reset
                     editorViewModel.resetToDefault()
                 }
             } message: {
