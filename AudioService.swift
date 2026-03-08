@@ -17,11 +17,17 @@ class AudioService {
         setupAudioSession()
     }
     
+    // ACTUALIZADO: Forzamos la salida por el altavoz principal
     private func setupAudioSession() {
         #if os(iOS)
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default, options: .duckOthers)
+            
+            // Usamos .defaultToSpeaker para que suene por el altavoz fuerte
+            try audioSession.setCategory(.playback, 
+                                        mode: .spokenAudio, 
+                                        options: [.defaultToSpeaker, .allowBluetooth])
+            
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         } catch {
             print("Error setting up audio session: \(error)")
@@ -36,6 +42,7 @@ class AudioService {
         
         let player = try AVAudioPlayer(contentsOf: url)
         player.delegate = delegate
+        player.volume = 1.0 // Aseguramos volumen máximo del reproductor
         player.play()
         
         self.audioPlayer = player
@@ -75,6 +82,4 @@ class TextToSpeechService {
         synthesizer.stopSpeaking(at: .immediate)
     }
 }
-
-
 

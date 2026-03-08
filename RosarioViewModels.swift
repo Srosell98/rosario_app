@@ -53,12 +53,18 @@ class RosarioViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
         updateCurrentState()
     }
 
-    // NUEVO MÉTODO PRIVADO (Añádelo al final de la clase o en la sección de Private Methods)
+    // ACTUALIZADO: Forzamos la salida por el altavoz principal y habilitamos Bluetooth de alta calidad
     private func setupAudioSession() {
         do {
-            // .playback indica que el audio es esencial y no debe silenciarse con el interruptor lateral
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
-            try AVAudioSession.sharedInstance().setActive(true)
+            let session = AVAudioSession.sharedInstance()
+            
+            // .defaultToSpeaker: Asegura que el sonido salga por el altavoz de abajo y no por el de las llamadas.
+            // .allowBluetooth: Permite que suene en altavoces externos con máxima fidelidad.
+            try session.setCategory(.playback, 
+                                    mode: .spokenAudio, 
+                                    options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            
+            try session.setActive(true)
         } catch {
             print("Error al configurar AVAudioSession: \(error.localizedDescription)")
         }
